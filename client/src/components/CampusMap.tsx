@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, CircleMarker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Location } from "../types";
 import AnimatedMarker from "./ui/AnimatedMarker";
@@ -52,6 +52,10 @@ interface CampusMapProps {
   mapTheme: MapThemeId;
   onMapThemeChange: (t: MapThemeId) => void;
   onShowDetails?: (location: Location) => void;
+  currentLocation: [number, number] | null;
+  onLocateCurrent: () => void;
+  onSetCurrentLocation?: (loc: [number, number]) => void;
+  geoError?: string | null;
 }
 
 const CampusMap: React.FC<CampusMapProps> = ({
@@ -63,7 +67,11 @@ const CampusMap: React.FC<CampusMapProps> = ({
   mapTheme,
   onMapThemeChange,
   onShowDetails,
+  currentLocation,
+  onLocateCurrent,
+  geoError,
 }) => {
+
   const tile = (() => {
     switch (mapTheme) {
       case "osm-hot":
@@ -130,10 +138,34 @@ const CampusMap: React.FC<CampusMapProps> = ({
             onSelect={onShowDetails!}
           />
         ))}
+        {currentLocation && (
+          <CircleMarker
+            center={currentLocation}
+            radius={9}
+            pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.9 }}
+          />
+        )}
         <RoutingMachine waypoints={routeWaypoints} onRouteFound={onRouteFound} />
         <MapResizer />
         <MapUpdater center={center} zoom={zoom} />
       </MapContainer>
+
+      <div className="absolute right-4 top-20 z-[1210] flex flex-col gap-2">
+        <button
+          className="glass-panel flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-600/20 px-3 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-500/30"
+          onClick={onLocateCurrent}
+          type="button"
+          aria-label="Show current location"
+        >
+          <span className="text-[10px]">📍</span>
+          <span>My Location</span>
+        </button>
+        {geoError && (
+          <div className="glass-panel rounded-xl border border-rose-400/30 bg-rose-700/15 px-3 py-2 text-[10px] text-rose-200">
+            {geoError}
+          </div>
+        )}
+      </div>
 
       <MapThemeSwitch
         value={mapTheme}

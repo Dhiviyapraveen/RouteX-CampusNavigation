@@ -28,6 +28,9 @@ export default function Index() {
   const [source, setSource] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+  const [currentLocationError, setCurrentLocationError] = useState<string | null>(null);
+  const [useCurrentLocationAsSource, setUseCurrentLocationAsSource] = useState(false);
   const [routeMetrics, setRouteMetrics] = useState<{ distanceMeters: number; durationMinutes: number } | null>(null);
 
   const [mapState, setMapState] = useState<{ center: [number, number]; zoom: number }>({
@@ -59,11 +62,30 @@ export default function Index() {
     setMapState({ center: CAMPUS_CENTER, zoom: 17 });
   };
 
+  const handleLocateCurrent = () => {
+    if (!navigator.geolocation) {
+      setCurrentLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCurrentLocation([pos.coords.latitude, pos.coords.longitude]);
+        setCurrentLocationError(null);
+        setUseCurrentLocationAsSource(true);
+        setSource(null);
+      },
+      (err) => {
+        setCurrentLocationError(err.message || "Unable to locate current position.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 },
+    );
+  };
+
   useEffect(() => {
-    if (!source || !destination) {
+    if ((!source && !useCurrentLocationAsSource) || !destination) {
       setRouteMetrics(null);
     }
-  }, [destination, source]);
+  }, [destination, source, useCurrentLocationAsSource]);
 
   const handleRouteFound = useCallback((m: { distanceMeters: number; durationMinutes: number }) => {
     setRouteMetrics({ distanceMeters: m.distanceMeters, durationMinutes: m.durationMinutes });
@@ -144,7 +166,22 @@ export default function Index() {
                     locations={allLocations}
                     source={source}
                     destination={destination}
-                    onSourceChange={setSource}
+                    useCurrentLocationAsSource={useCurrentLocationAsSource}
+                    onUseCurrentLocationAsSource={() => {
+                      if (!currentLocation) {
+                        handleLocateCurrent();
+                        return;
+                      }
+                      setUseCurrentLocationAsSource((prev) => {
+                        const next = !prev;
+                        if (next) setSource(null);
+                        return next;
+                      });
+                    }}
+                    onSourceChange={(loc) => {
+                      setSource(loc);
+                      setUseCurrentLocationAsSource(false);
+                    }}
                     onDestinationChange={setDestination}
                     onClose={() => setShowRouting(false)}
                     distance={routeMetrics?.distanceMeters}
@@ -223,8 +260,19 @@ export default function Index() {
               locations={filteredLocations}
               center={mapState.center}
               zoom={mapState.zoom}
+              currentLocation={currentLocation}
+              onLocateCurrent={handleLocateCurrent}
+              onSetCurrentLocation={(loc) => {
+                setCurrentLocation(loc);
+                setUseCurrentLocationAsSource(true);
+                setSource(null);
+                setMapState({ center: loc, zoom: 19 });
+              }}
+              geoError={currentLocationError}
               routeWaypoints={
-                source && destination
+                (useCurrentLocationAsSource && currentLocation && destination)
+                  ? [currentLocation, [destination.latitude, destination.longitude]]
+                  : source && destination
                   ? [
                       [source.latitude, source.longitude],
                       [destination.latitude, destination.longitude],

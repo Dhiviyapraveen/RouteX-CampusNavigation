@@ -6,6 +6,8 @@ interface RoutingPanelProps {
   locations: Location[];
   source: Location | null;
   destination: Location | null;
+  useCurrentLocationAsSource: boolean;
+  onUseCurrentLocationAsSource: () => void;
   onSourceChange: (location: Location | null) => void;
   onDestinationChange: (location: Location | null) => void;
   onClose: () => void;
@@ -38,6 +40,8 @@ const RoutingPanel: React.FC<RoutingPanelProps> = ({
   locations,
   source,
   destination,
+  useCurrentLocationAsSource,
+  onUseCurrentLocationAsSource,
   onSourceChange,
   onDestinationChange,
   onClose,
@@ -106,9 +110,18 @@ const RoutingPanel: React.FC<RoutingPanelProps> = ({
               border: '2.5px solid rgba(8,14,30,1)',
             }}
           />
-          <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.22em] mb-1.5 block">
-            Start Location
-          </label>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.22em] block">
+              Start Location
+            </label>
+            <button
+              onClick={onUseCurrentLocationAsSource}
+              className="text-[10px] font-black rounded-full border border-indigo-300/40 bg-indigo-700/20 px-2 py-1 hover:bg-indigo-700/30"
+              type="button"
+            >
+              {useCurrentLocationAsSource ? "Using current" : "Use current location"}
+            </button>
+          </div>
           <div style={selectWrapStyle}>
             <select
               style={selectStyle}
